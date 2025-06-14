@@ -14,9 +14,14 @@ function getAuraName(expression) {
 
 // Camera Setup
 const startVideo = (videoRef) => {
-  navigator.mediaDevices.getUserMedia({ video: true }).then(stream => {
-    videoRef.current.srcObject = stream;
-  });
+  navigator.mediaDevices.getUserMedia({ video: true })
+    .then((stream) => {
+      videoRef.current.srcObject = stream;
+      console.log("📸 Camera started");
+    })
+    .catch((err) => {
+      console.error("🚫 Camera error:", err);
+    });
 };
 
 // Selfie Upload Handling
@@ -24,7 +29,15 @@ const handleImageUpload = (event, setUploadedImage) => {
   const file = event.target.files[0];
   if (file) {
     const reader = new FileReader();
-    reader.onload = (e) => setUploadedImage(e.target.result);
+    reader.onload = (e) => {
+      const image = new Image();
+      image.src = e.target.result;
+
+      image.onload = () => {
+        setUploadedImage(e.target.result);
+        console.log("🖼️ Image fully loaded");
+      };
+    };
     reader.readAsDataURL(file);
   }
 };
@@ -82,7 +95,7 @@ function drawBrows(ctx, browsEdges) {
 }
 
 // Main App
-function GlowMatchApp() {
+function GlowMatchApp() { console.log("🌟 GlowMatch started");
   const videoRef = useRef();
   const canvasRef = useRef();
   const [auraMatch, setAuraMatch] = useState(null);
@@ -103,13 +116,17 @@ function GlowMatchApp() {
   };
 
   useEffect(() => {
-    Promise.all([
-      faceapi.nets.ssdMobilenetv1.loadFromUri('/models'),
-      faceapi.nets.faceLandmark68Net.loadFromUri('/models'),
-      faceapi.nets.faceExpressionNet.loadFromUri('/models'),
-      tf.ready()
-    ]).then(() => startVideo(videoRef));
-  }, []);
+    useEffect(() => {
+  Promise.all([
+    faceapi.nets.ssdMobilenetv1.loadFromUri('/models').then(() => console.log("✅ Model 1 (ssd_mobilenetv1) loaded")),
+    faceapi.nets.faceLandmark68Net.loadFromUri('/models').then(() => console.log("✅ Model 2 (landmark68) loaded")),
+    faceapi.nets.faceExpressionNet.loadFromUri('/models').then(() => console.log("✅ Model 3 (expression) loaded")),
+    tf.ready().then(() => console.log("✅ TensorFlow ready"))
+  ]).then(() => {
+    console.log("📸 Starting camera");
+    startVideo(videoRef);
+  });
+}, []);
 
   useEffect(() => {
     let animationFrame;
@@ -149,14 +166,45 @@ function GlowMatchApp() {
   };
 
   return (
-    <div style={{ textAlign: 'center' }} onTouchMove={handleTouchMove}>
-      <h1>GlowMatch</h1>
-      <h2>{auraMatch?.name || "Detecting your Aura..."}</h2>
-      <p>Style Suggestion: {auraMatch?.style}</p>
-      <input type="file" accept="image/*" onChange={(e) => handleImageUpload(e, setUploadedImage)} />
-      <button onClick={saveLook}>Save Look</button>
-      <div>{savedLooks.map((look, index) => <img key={index} src={look} alt="Saved look" width="100" height="100" />)}</div>
+  <div style={{ textAlign: 'center' }} onTouchMove={handleTouchMove}>
+    <h1>GlowMatch</h1>
+    <h2>{auraMatch?.name || "Detecting your Aura..."}</h2>
+    <p>Style Suggestion: {auraMatch?.style}</p>
+
+    <input type="file" accept="image/*" onChange={(e) => handleImageUpload(e, setUploadedImage)} />
+
+    {uploadedImage ? (
+      <img src={uploadedImage} alt="Uploaded" width="640" height="480" />
+    ) : (
+      <video
+        ref={videoRef}
+        autoPlay
+        muted
+        playsInline
+        width="640"
+        height="480"
+        style={{ marginTop: '1rem' }}
+      />
+    )}
+
+    <canvas
+      ref={canvasRef}
+      width="640"
+      height="480"
+      style={{ position: 'absolute', top: 0, left: 0 }}
+    />
+
+    <button onClick={saveLook} style={{ marginTop: '1rem' }}>
+      Save Look
+    </button>
+
+    <div style={{ marginTop: '1rem' }}>
+      {savedLooks.map((look, index) => (
+        <img key={index} src={look} alt={`Look ${index}`} width="100" />
+      ))}
     </div>
+  </div>
+);
   );
 }
 
