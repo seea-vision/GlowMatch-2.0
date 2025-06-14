@@ -1,0 +1,32 @@
+{
+  "name": "glowmatch2.0",
+  "version": "1.0.0",
+  "private": true,
+  "description": "GlowMatch 2.0 is an AI-powered beauty app that analyzes your aura, facial mood, and skin tone to render the best lash and brow combination in real time.",
+  "scripts": {
+    "start": "react-scripts start",
+    "build": "react-scripts build",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject",
+    "serve": "serve -s build"
+  },
+  "dependencies": {
+    "@tensorflow/tfjs": "^4.10.0",
+    "face-api.js": "^0.22.2",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-scripts": "5.0.1",
+    "serve": "^14.2.0"
+  },
+  "keywords": [
+    "react",
+    "tensorflow",
+    "face-api.js",
+    "beauty",
+    "aura",
+    "lashes",
+    "brows",
+    "glowmatch"
+  ],
+  "license": "MIT"
+}
