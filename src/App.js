@@ -12,14 +12,12 @@ function getAuraName(expression) {
   return options.find(opt => opt.mood === expression) || options[0];
 }
 
-// Camera Setup
 const startVideo = (videoRef) => {
   navigator.mediaDevices.getUserMedia({ video: true }).then(stream => {
     videoRef.current.srcObject = stream;
   });
 };
 
-// Selfie Upload Handling
 const handleImageUpload = (event, setUploadedImage) => {
   const file = event.target.files[0];
   if (file) {
@@ -29,7 +27,6 @@ const handleImageUpload = (event, setUploadedImage) => {
   }
 };
 
-// Process Lashes
 async function processLashes(imageTensor, lashLength, skinToneFactor) {
   imageTensor = await tf.image.gaussianBlur(imageTensor, [3, 3], 1);
   const gaborFilter = tf.tensor2d([[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]]);
@@ -37,7 +34,6 @@ async function processLashes(imageTensor, lashLength, skinToneFactor) {
   return edges.mul(tf.scalar(lashLength / 10 * skinToneFactor));
 }
 
-// Process Brows
 async function processBrows(imageTensor, browThickness, skinToneFactor) {
   imageTensor = await tf.image.gaussianBlur(imageTensor, [3, 3], 1);
   const gaborFilter = tf.tensor2d([[-1, -1, -1], [-1, 8, -1], [-1, -1, -1]]);
@@ -45,13 +41,11 @@ async function processBrows(imageTensor, browThickness, skinToneFactor) {
   return edges.mul(tf.scalar(browThickness / 10 * skinToneFactor));
 }
 
-// Determine Skin Tone Factor
 async function getSkinToneFactor(imageTensor) {
   const avgColor = imageTensor.mean().dataSync()[0];
-  return 1 + (avgColor - 128) / 256; // Adjust intensity based on skin tone
+  return 1 + (avgColor - 128) / 256;
 }
 
-// Render Lashes
 function drawLashes(ctx, lashesEdges, curlIntensity) {
   const pixels = lashesEdges.dataSync();
   for (let i = 0; i < pixels.length; i += 4) {
@@ -66,7 +60,6 @@ function drawLashes(ctx, lashesEdges, curlIntensity) {
   }
 }
 
-// Render Brows
 function drawBrows(ctx, browsEdges) {
   const pixels = browsEdges.dataSync();
   for (let i = 0; i < pixels.length; i += 4) {
@@ -81,7 +74,6 @@ function drawBrows(ctx, browsEdges) {
   }
 }
 
-// Main App
 function GlowMatchApp() {
   const videoRef = useRef();
   const canvasRef = useRef();
@@ -96,7 +88,6 @@ function GlowMatchApp() {
     const touch = event.touches[0];
     const changeX = touch.clientX / window.innerWidth;
     const changeY = touch.clientY / window.innerHeight;
-    
     setLashLength(Math.max(5, Math.min(20, changeX * 20)));
     setBrowThickness(Math.max(5, Math.min(20, changeY * 20)));
     setCurlIntensity(Math.max(0.5, Math.min(2, (changeY + changeX) / 2)));
@@ -116,20 +107,26 @@ function GlowMatchApp() {
     const detectFace = async () => {
       const imageSource = uploadedImage ? new Image() : videoRef.current;
       if (uploadedImage) imageSource.src = uploadedImage;
-      
-      const detection = await faceapi.detectSingleFace(imageSource, new faceapi.SsdMobilenetv1Options())
+
+      const detection = await faceapi
+        .detectSingleFace(imageSource, new faceapi.SsdMobilenetv1Options())
         .withFaceLandmarks()
         .withFaceExpressions();
 
       if (detection) {
-        setAuraMatch(getAuraName(Object.keys(detection.expressions).reduce((a, b) =>
-          detection.expressions[a] > detection.expressions[b] ? a : b
-        )));
+        setAuraMatch(
+          getAuraName(
+            Object.keys(detection.expressions).reduce((a, b) =>
+              detection.expressions[a] > detection.expressions[b] ? a : b
+            )
+          )
+        );
 
         const ctx = canvasRef.current.getContext('2d');
         ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
-
-        const imageTensor = tf.browser.fromPixels(imageSource).resizeBilinear([128, 128]);
+        const imageTensor = tf.browser
+          .fromPixels(imageSource)
+          .resizeBilinear([128, 128]);
         const skinToneFactor = await getSkinToneFactor(imageTensor);
 
         const lashesEdges = await processLashes(imageTensor, lashLength, skinToneFactor);
@@ -153,16 +150,17 @@ function GlowMatchApp() {
       <h1>GlowMatch</h1>
       <h2>{auraMatch?.name || "Detecting your Aura..."}</h2>
       <p>Style Suggestion: {auraMatch?.style}</p>
+      
       <input type="file" accept="image/*" onChange={(e) => handleImageUpload(e, setUploadedImage)} />
-      <button onClick={saveLook}>Save Look</button>
-      <div>{savedLooks.map((look, index) => <img key={index} src={look} alt="Saved look" width="100" height="100" />)}</div>
+      {!uploadedImage && <video ref={videoRef} autoPlay muted width="640" height="480" />}
+      <canvas ref={canvasRef} width="640" height="480" style={{ position: 'absolute', top: 0, left: 0 }} />
+      
+      <button onClick={saveLook} style={{ marginTop: '1rem' }}>Save Look</button>
+      <div>{savedLooks.map((look, i) => (
+        <img key={i} src={look} alt="Saved look" width="100" height="100" />
+      ))}</div>
     </div>
   );
 }
 
 export default GlowMatchApp;
-
-
-
-
-
